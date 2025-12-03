@@ -17,10 +17,15 @@ const app = express();
 // Allow CORS so the frontend can fetch from this server from any origin.
 app.use(cors());
 
-// Serve static assets from the `public` folder.  This includes index.html and
-// images.  You can run the site by navigating to http://localhost:3000/ in a
-// browser once the server is running.
-app.use(express.static('public'));
+// Serve static files (HTML + images)
+app.use(express.static(path.join(__dirname, "public")));
+
+/**
+ * Root → serve index.html
+ */
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/index.html"));
+});
 
 /**
  * Proxy endpoint that fetches the Google Sheets data and returns it to the
