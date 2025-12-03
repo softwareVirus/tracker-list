@@ -102,6 +102,27 @@
       color: #94a3b8;
       text-align: right;
     }
+
+    /* Fix spacing between columns */
+table th:nth-child(1),
+table td:nth-child(1) {
+  width: 50px;      /* more space for "#" */
+}
+
+table th:nth-child(2),
+table td:nth-child(2) {
+  width: 180px;     /* rank column spacing */
+}
+
+table th:nth-child(3),
+table td:nth-child(3) {
+  width: 240px;     /* player column spacing */
+}
+
+/* Optional: force spacing between cells */
+td {
+  padding: 10px 16px; /* increase horizontal padding */
+}
   </style>
 </head>
 <body>
