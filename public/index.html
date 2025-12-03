@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <title>TFT Leaderboard</title>
   <style>
-    /* General page styling */
     body {
       margin: 0;
       padding: 40px 20px;
@@ -15,17 +14,15 @@
       justify-content: center;
     }
 
-    /* Container that holds the entire leaderboard */
     .board {
       width: 100%;
       max-width: 900px;
       background: #1e293b;
       border-radius: 12px;
-      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 12px 24px rgba(0,0,0,0.2);
       overflow: hidden;
     }
 
-    /* Header above the table */
     .board-header {
       background: #334155;
       padding: 16px;
@@ -45,16 +42,17 @@
       color: #94a3b8;
     }
 
-    /* Table styling */
     table {
       width: 100%;
       border-collapse: collapse;
       table-layout: fixed;
       font-size: 14px;
     }
+
     thead {
       background: #475569;
     }
+
     thead th {
       padding: 10px 8px;
       text-align: left;
@@ -63,37 +61,41 @@
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
+
     tbody tr {
       border-bottom: 1px solid #334155;
     }
+
     tbody tr:nth-child(even) {
       background: #1e293b;
     }
+
     tbody tr:nth-child(odd) {
       background: #1f2937;
     }
+
     td {
       padding: 10px 8px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    /* Rank icon and tier text cell */
+
     .rank-cell {
       display: flex;
       align-items: center;
       gap: 8px;
     }
+
     .rank-icon {
       width: 24px;
       height: 24px;
       flex-shrink: 0;
     }
-    /* Winrate coloring */
+
     .winrate-good { color: #4ade80; font-weight: 500; }
     .winrate-bad  { color: #f87171; font-weight: 500; }
 
-    /* Footer */
     .footer {
       padding: 12px;
       font-size: 12px;
@@ -115,8 +117,8 @@
     <table id="leaderboard">
       <thead>
         <tr>
+          <th>#</th>
           <th>Rank</th>
-          <th>Tier</th>
           <th>Player</th>
           <th>LP</th>
           <th>Wins</th>
@@ -124,17 +126,13 @@
           <th>Winrate</th>
         </tr>
       </thead>
-      <tbody>
-        <!-- Data rows will be inserted here -->
-      </tbody>
+      <tbody></tbody>
     </table>
+
     <div class="footer">Last updated automatically</div>
   </div>
 
   <script>
-    // Mapping of tiers to local image paths.  The images should be stored in
-    // public/images.  Ensure that you place the correct icons (diamond.png,
-    // emerald.png, etc.) into that folder when you deploy the site.
     const tierIcons = {
       DIAMOND:  'images/diamond.png',
       EMERALD:  'images/emerald.png',
@@ -145,25 +143,20 @@
       IRON:     'images/iron.png'
     };
 
-    // Fetch the spreadsheet data from the proxy endpoint.  The server.js file
-    // defines the /sheet route which proxies the GVIZ call.  This avoids
-    // Google's CORS restrictions on the client side.
     async function fetchSheetData() {
       const res = await fetch('/sheet');
       const text = await res.text();
-      // The GVIZ API wraps the JSON in a function call; strip that out.
       const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
       const headers = json.table.cols.map(col => col.label);
       const rows = json.table.rows.map(row => row.c.map(cell => cell ? cell.v : ''));
       return { headers, rows };
     }
 
-    // Build the table rows based on the fetched data.
     function buildTable(data) {
       const { headers, rows } = data;
       const tbody = document.querySelector('#leaderboard tbody');
       tbody.innerHTML = '';
-      // Expecting the columns in the order: Tier | Rank | Name | LP | Wins | Losses | Winrate
+
       const tierIndex = headers.indexOf('Tier');
       const rankIndex = headers.indexOf('Rank');
       const nameIndex = headers.indexOf('Name');
@@ -172,31 +165,32 @@
       const lossesIndex = headers.indexOf('Losses');
       const winIndex = headers.indexOf('Winrate');
 
+      let rowNum = 1;
+
       for (const row of rows) {
         if (!row || row.length === 0 || row.every(val => val === '')) continue;
+
         const tr = document.createElement('tr');
 
-        // Rank cell with icon and tier text
+        // New index column
+        const numCell = document.createElement('td');
+        numCell.textContent = rowNum + ".";
+        tr.appendChild(numCell);
+
+        // Rank cell with icon
         const rankCell = document.createElement('td');
         rankCell.className = 'rank-cell';
         const iconImg = document.createElement('img');
         const tier = row[tierIndex];
         iconImg.src = tierIcons[tier] || '';
-        iconImg.alt = tier;
         iconImg.className = 'rank-icon';
-        rankCell.appendChild(iconImg);
-        // Combined rank (tier and division) e.g., "PLATINUM III"
         const rankSpan = document.createElement('span');
         rankSpan.textContent = `${tier} ${row[rankIndex]}`;
+        rankCell.appendChild(iconImg);
         rankCell.appendChild(rankSpan);
         tr.appendChild(rankCell);
 
-        // Tier column (text only)
-        const tierCell = document.createElement('td');
-        tierCell.textContent = tier;
-        tr.appendChild(tierCell);
-
-        // Player name
+        // Player
         const nameCell = document.createElement('td');
         nameCell.textContent = row[nameIndex];
         tr.appendChild(nameCell);
@@ -216,35 +210,30 @@
         lossesCell.textContent = row[lossesIndex];
         tr.appendChild(lossesCell);
 
-        // Winrate with colored text
+        // Winrate
         const winrateCell = document.createElement('td');
-        const winRate = parseFloat(String(row[winIndex]).replace('%', '')) || 0;
+        const winRate = parseFloat(String(row[winIndex]).replace('%','')) || 0;
         winrateCell.textContent = row[winIndex];
         winrateCell.className = winRate >= 50 ? 'winrate-good' : 'winrate-bad';
         tr.appendChild(winrateCell);
 
         tbody.appendChild(tr);
+        rowNum++;
       }
 
-      // Update last-update text
-      const lastUpdate = document.getElementById('last-update');
-      lastUpdate.textContent = `Updated: ${new Date().toLocaleString()}`;
+      document.getElementById('last-update').textContent =
+        `Updated: ${new Date().toLocaleString()}`;
     }
 
-    // Initialize the leaderboard: fetch data then build table
-    async function initLeaderboard() {
+    window.addEventListener('DOMContentLoaded', async () => {
       try {
         const data = await fetchSheetData();
         buildTable(data);
       } catch (err) {
-        console.error('Error loading sheet data:', err);
-        const lastUpdate = document.getElementById('last-update');
-        lastUpdate.textContent = 'Failed to load data';
+        console.error(err);
+        document.getElementById('last-update').textContent = 'Failed to load data';
       }
-    }
-
-    // Kick off the initialization when the page loads
-    window.addEventListener('DOMContentLoaded', initLeaderboard);
+    });
   </script>
 </body>
 </html>
