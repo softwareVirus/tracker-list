@@ -1,24 +1,21 @@
-import express from 'express';
-import axios from 'axios';
-import cors from 'cors';
+import express from "express";
+import axios from "axios";
+import path from "path";
+import cors from "cors";
+import { fileURLToPath } from "url";
 
-// Configuration
-// The ID of the Google Spreadsheet to read data from.  You can find this in the
-// URL of the spreadsheet.  For example, in
-//   https://docs.google.com/spreadsheets/d/1uXazi8d75VP3q_Q9R81FgR-qR3mfUZLUATKJVPwA8Xo/edit#gid=0
-// the spreadsheet ID is the part after `/d/` and before `/edit`.
-const SPREADSHEET_ID = process.env.SPREADSHEET_ID || '1uXazi8d75VP3q_Q9R81FgR-qR3mfUZLUATKJVPwA8Xo';
-// The name of the sheet (tab) to read.  In many spreadsheets this is "Sheet1" or
-// another name.  Change it here if your sheet name is different.
-const SHEET_NAME = process.env.SHEET_NAME || 'Sayfa1';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
-
-// Allow CORS so the frontend can fetch from this server from any origin.
 app.use(cors());
 
 // Serve static files (HTML + images)
 app.use(express.static(path.join(__dirname, "public")));
+
+// Google Sheet config
+const SPREADSHEET_ID = "1uXazi8d75VP3q_Q9R81FgR-qR3mfUZLUATKJVPwA8Xo";
+const SHEET_NAME = "Sayfa1";
 
 /**
  * Root → serve index.html
@@ -28,30 +25,27 @@ app.get("/", (req, res) => {
 });
 
 /**
- * Proxy endpoint that fetches the Google Sheets data and returns it to the
- * client.  Google does not permit cross‑origin browser requests directly to
- * https://docs.google.com, so the browser fetches from our server instead.
+ * Proxy endpoint that fetches Google Sheets GViz JSON
  */
-app.get('/sheet', async (req, res) => {
+app.get("/sheet", async (req, res) => {
   try {
-    // Build the GVIZ API URL for the given sheet.  We use the GVIZ API
-    // because it returns JSON-like data that is easy to parse on the client.
     const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}`;
     const response = await axios.get(url);
-    // Set CORS header so the browser will accept the response.  While we
-    // already enable CORS globally above, explicitly setting it here makes
-    // sure it applies to this endpoint.
-    res.setHeader('Access-Control-Allow-Origin', '*');
+
+    res.setHeader("Access-Control-Allow-Origin", "*");
     res.send(response.data);
   } catch (e) {
-    console.error('Failed to fetch spreadsheet:', e.message);
-    res.status(500).json({ error: 'Failed to load spreadsheet' });
+    console.error("Failed to fetch spreadsheet:", e.message);
+    res.status(500).json({ error: "Failed to load spreadsheet." });
   }
 });
 
-// Start the server.  The port can be configured via the PORT environment
-// variable; if not provided, default to 3000.
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Leaderboard server running at http://localhost:${PORT}`);
+/**
+ * Fallback → return index.html for all unknown routes
+ * Helps in SPA use cases
+ */
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/index.html"));
 });
+
+export default app;
